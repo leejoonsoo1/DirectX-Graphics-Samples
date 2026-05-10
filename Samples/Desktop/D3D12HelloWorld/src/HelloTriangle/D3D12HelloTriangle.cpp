@@ -15,6 +15,7 @@
 extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 618; }
 extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = u8".\\D3D12\\"; }
 
+// 생성자
 D3D12HelloTriangle::D3D12HelloTriangle(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
     m_frameIndex(0),
@@ -30,6 +31,7 @@ void D3D12HelloTriangle::OnInit()
     LoadAssets();
 }
 
+// 랜더링 파이프라인 종속성을 로드합니다.
 // Load the rendering pipeline dependencies.
 void D3D12HelloTriangle::LoadPipeline()
 {
@@ -50,6 +52,7 @@ void D3D12HelloTriangle::LoadPipeline()
     }
 #endif
 
+	// factory를 만들고, WARP 디바이스를 사용할지 여부에 따라 적절한 어댑터를 선택하여 D3D12 디바이스를 생성합니다.
     ComPtr<IDXGIFactory4> factory;
     ThrowIfFailed(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory)));
 
@@ -76,6 +79,7 @@ void D3D12HelloTriangle::LoadPipeline()
             ));
     }
 
+	// queueDesc 설명 및 명령 큐 생성.
     // Describe and create the command queue.
     D3D12_COMMAND_QUEUE_DESC queueDesc = {};
     queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -83,7 +87,9 @@ void D3D12HelloTriangle::LoadPipeline()
 
     ThrowIfFailed(m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue)));
 
+
     // Describe and create the swap chain.
+    // Swap chain 초기화
     DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
     swapChainDesc.BufferCount = FrameCount;
     swapChainDesc.Width = m_width;
@@ -110,6 +116,7 @@ void D3D12HelloTriangle::LoadPipeline()
     m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 
     // Create descriptor heaps.
+	// RTV descriptor heap 생성
     {
         // Describe and create a render target view (RTV) descriptor heap.
         D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
@@ -122,10 +129,12 @@ void D3D12HelloTriangle::LoadPipeline()
     }
 
     // Create frame resources.
+	// 프레임 리소스 생성
     {
         CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
 
         // Create a RTV for each frame.
+		// 3개의 프레임 버퍼 각각에 대한 RTV 생성
         for (UINT n = 0; n < FrameCount; n++)
         {
             ThrowIfFailed(m_swapChain->GetBuffer(n, IID_PPV_ARGS(&m_renderTargets[n])));
@@ -138,10 +147,12 @@ void D3D12HelloTriangle::LoadPipeline()
 }
 
 // Load the sample assets.
+// 샘플 자산을 로드합니다.
 void D3D12HelloTriangle::LoadAssets()
 {
     // Create an empty root signature.
     {
+		// 루트 시그니처는 셰이더가 액세스할 수 있는 리소스의 범위를 정의합니다. 이 샘플에서는 루트 시그니처가 필요하지 않으므로 빈 루트 시그니처를 생성합니다.
         CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
         rootSignatureDesc.Init(0, nullptr, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
@@ -152,6 +163,7 @@ void D3D12HelloTriangle::LoadAssets()
     }
 
     // Create the pipeline state, which includes compiling and loading shaders.
+	// 파이프라인 상태를 생성합니다. 여기에는 셰이더 컴파일 및 로드가 포함됩니다.
     {
         UINT8* pVertexShaderData = nullptr;
         UINT8* pPixelShaderData = nullptr;
@@ -162,6 +174,7 @@ void D3D12HelloTriangle::LoadAssets()
         ThrowIfFailed(ReadDataFromFile(GetAssetFullPath(L"shaders_PSMain.cso").c_str(), &pPixelShaderData, &pixelShaderDataLength));
 
         // Define the vertex input layout.
+		// 정점 입력 레이아웃 정의
         D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
         {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -169,6 +182,7 @@ void D3D12HelloTriangle::LoadAssets()
         };
 
         // Describe and create the graphics pipeline state object (PSO).
+		// 그래픽 파이프라인 상태 객체(PSO)를 설명하고 생성합니다.
         D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
         psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
         psoDesc.pRootSignature = m_rootSignature.Get();
@@ -194,6 +208,7 @@ void D3D12HelloTriangle::LoadAssets()
     ThrowIfFailed(m_commandList->Close());
 
     // Create the vertex buffer.
+	// 정점 버퍼를 생성합니다.
     {
         // Define the geometry for a triangle.
         Vertex triangleVertices[] =
@@ -225,6 +240,7 @@ void D3D12HelloTriangle::LoadAssets()
         m_vertexBuffer->Unmap(0, nullptr);
 
         // Initialize the vertex buffer view.
+	    // 정점 버퍼 뷰를 초기화합니다.
         m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
         m_vertexBufferView.StrideInBytes = sizeof(Vertex);
         m_vertexBufferView.SizeInBytes = vertexBufferSize;
@@ -279,6 +295,7 @@ void D3D12HelloTriangle::OnDestroy()
     CloseHandle(m_fenceEvent);
 }
 
+// Fill the command list with all the render commands and information needed to render the scene.
 void D3D12HelloTriangle::PopulateCommandList()
 {
     // Command list allocators can only be reset when the associated 
@@ -315,6 +332,7 @@ void D3D12HelloTriangle::PopulateCommandList()
     ThrowIfFailed(m_commandList->Close());
 }
 
+// Wait for the previous frame to finish.
 void D3D12HelloTriangle::WaitForPreviousFrame()
 {
     // WAITING FOR THE FRAME TO COMPLETE BEFORE CONTINUING IS NOT BEST PRACTICE.
